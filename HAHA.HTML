@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HAHA - Global</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1E1E1E;
+            --primary-color: #FFFFFF;
+            --accent-green: #4CAF50;
+            --accent-red: #F44336;
+            --accent-gold: #FFD700;
+            --font-head: 'Anton', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --nav-height: 60px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            font-family: var(--font-body);
+            overflow: hidden;
+            height: 100vh;
+            display: flex; flex-direction: column;
+        }
+
+        .font-head { font-family: var(--font-head); letter-spacing: 1px; }
+
+        /* Navigation */
+        .nav-bar {
+            position: fixed; bottom: 0; width: 100%; height: var(--nav-height);
+            background: var(--surface-color); display: flex; justify-content: space-around;
+            align-items: center; border-top: 1px solid #333; z-index: 1000;
+        }
+        .nav-item {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #666; font-size: 24px; cursor: pointer; transition: color 0.2s;
+        }
+        .nav-item.active { color: var(--primary-color); }
+        .nav-label { font-size: 10px; margin-top: 2px; font-family: var(--font-body); }
+
+        /* Views */
+        .view {
+            flex: 1; display: none; position: relative;
+            height: calc(100vh - var(--nav-height)); overflow-y: hidden; width: 100%;
+        }
+        .view.active { display: block; }
+
+        /* --- DISCOVERY TOP HEADER --- */
+        .discovery-header {
+            position: absolute; top: 20px; left: 0; width: 100%;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100; pointer-events: none; 
+        }
+        .toggle-container {
+            background: rgba(30, 30, 30, 0.8);
+            backdrop-filter: blur(5px);
+            padding: 4px; border-radius: 20px;
+            display: flex; gap: 5px;
+            border: 1px solid #333;
+            pointer-events: auto; 
+        }
+        .toggle-btn {
+            background: transparent; color: #999; border: none;
+            padding: 6px 16px; border-radius: 16px;
+            font-size: 13px; font-weight: bold; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .toggle-btn.active {
+            background: var(--primary-color); color: #000;
+        }
+
+        /* --- LAYOUT --- */
+        .meme-layout {
+            background: #fff; color: #000;
+            display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+            width: 100%; height: 100%;
+        }
+        
+        .meme-layout .meme-top {
+            flex: 0 0 25%; 
+            display: flex; align-items: center; justify-content: center;
+            padding: 2% 5%; text-align: center;
+            font-family: var(--font-body); font-weight: bold;
+            line-height: 1.3; word-break: break-word;
+        }
+
+        .meme-layout .meme-middle {
+            flex: 1; margin: 0 5%;
+            border: 3px solid #000; 
+            background: #eee;
+            position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .meme-layout .meme-img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+
+        .meme-layout .meme-footer {
+            flex: 0 0 15%; 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 6%;
+            background: #fafafa;
+            border-top: 1px solid #ccc;
+            font-size: 12px; color: #555;
+        }
+        .meme-layout .meme-watermark { 
+            font-family: 'Anton', sans-serif; 
+            color: #999; 
+            font-size: 16px; letter-spacing: 1px;
+            margin-left: auto; 
+        }
+
+        /* --- Discovery --- */
+        #discovery-view.active { display: flex; align-items: center; justify-content: center; }
+        
+        .card-container {
+            position: relative; width: 90%; max-width: 380px; 
+            aspect-ratio: 350/480; max-height: 75vh; perspective: 1000px;
+            margin-top: 40px; 
+        }
+
+        .tinder-card {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transform-origin: 50% 100%; 
+            transition: transform 0.1s linear, opacity 0.3s;
+            will-change: transform;
+            background: #fff;
+        }
+        .tinder-card .meme-top { font-size: clamp(18px, 6vw, 28px); }
+
+        /* SPONSORED STYLE */
+        .tinder-card.sponsored {
+            border: 4px solid var(--accent-gold);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+        .sponsored-tag {
+            position: absolute; top: 10px; right: 10px;
+            background: var(--accent-gold); color: #000;
+            font-family: var(--font-head); font-size: 10px;
+            padding: 2px 6px; border-radius: 4px; z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* EMPTY STATE CARD */
+        .empty-card {
+            background: #222; border: 2px dashed #444; color: #666;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 20px;
+        }
+
+        .stats-container { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+        .stat-item { display: flex; align-items: center; font-size: 13px; color: #555; font-family: var(--font-head); font-weight: bold; }
+        .stamp-icon {
+            width: 22px; height: 22px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 8px; font-weight: bold; text-transform: uppercase; margin-right: 5px; border: 2px solid; background: #fff;
+        }
+        .stamp-pass { color: var(--accent-red); border-color: var(--accent-red); transform: rotate(-15deg); }
+        .stamp-haha { color: var(--accent-green); border-color: var(--accent-green); transform: rotate(15deg); }
+        
+        .badge {
+            position: absolute; top: 40px; padding: 5px 15px; border: 4px solid; border-radius: 8px;
+            font-size: 32px; font-weight: bold; font-family: var(--font-head); opacity: 0; z-index: 100; pointer-events: none;
+        }
+        .badge-haha { right: 20px; color: var(--accent-green); border-color: var(--accent-green); transform: rotate(15deg); }
+        .badge-pass { left: 20px; color: var(--accent-red); border-color: var(--accent-red); transform: rotate(-15deg); }
+
+        .share-btn {
+            background: transparent; color: #333; border: none; 
+            width: 32px; height: 32px; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; margin-left: 10px; z-index: 50; 
+        }
+        .share-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* --- Ranking --- */
+        #ranking-view { overflow-y: auto; }
+        .ranking-header {
+            padding: 20px; position: sticky; top: 0; background: var(--bg-color);
+            z-index: 10; border-bottom: 1px solid #333;
+        }
+        .filter-group { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
+        .filter-btn {
+            background: #333; color: #fff; border: none; padding: 8px 16px;
+            border-radius: 20px; white-space: nowrap; font-size: 12px;
+        }
+        .filter-btn.active { background: var(--primary-color); color: #000; font-weight: bold; }
+        .rank-list { padding: 0 10px 80px 10px; }
+        .rank-item {
+            display: flex; align-items: center; background: var(--surface-color);
+            margin-bottom: 10px; padding: 10px; border-radius: 8px;
+        }
+        .rank-num { font-family: var(--font-head); font-size: 24px; width: 40px; text-align: center; color: #555; }
+        .rank-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; margin-right: 15px; background: #000; }
+        .rank-score { font-family: var(--font-head); color: var(--accent-green); margin-left: auto; }
+
+        /* --- Mine --- */
+        .mine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding-bottom: 80px; }
+        .mini-card-wrapper {
+            background: #fff; border-radius: 4px; overflow: hidden;
+            aspect-ratio: 350/480; box-shadow: 0 2px 5px rgba(0,0,0,0.3); position: relative;
+        }
+        .mini-card-wrapper .meme-top { font-size: 10px; padding: 5px; } 
+        .mini-card-wrapper .meme-middle { margin: 0 6px; border-width: 2px; } 
+        .mini-card-wrapper .meme-footer { padding: 0 6px; font-size: 8px; }
+        .mini-card-wrapper .meme-watermark { font-size: 10px; }
+        .mini-card-wrapper .stats-container { gap: 4px; margin-top: 2px; }
+        .mini-card-wrapper .stat-item { font-size: 8px; }
+        .mini-card-wrapper .stamp-icon { width: 14px; height: 14px; font-size: 4px; border-width: 1px; margin-right: 2px; }
+
+        /* --- Studio --- */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color); z-index: 2000; display: none;
+            flex-direction: column;
+        }
+        .modal.open { display: flex; }
+        .modal-header {
+            padding: 15px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #333;
+        }
+        .btn-icon { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        
+        .studio-body { flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; overflow-y: auto; }
+        .stage-wrapper { position: relative; width: 100%; max-width: 350px; aspect-ratio: 350/480; box-shadow: 0 0 20px rgba(0,0,0,0.5); margin-bottom: 20px; background: #fff; overflow: hidden; }
+        .stage-bg-img { position: absolute; top: 120px; left: 20px; width: calc(100% - 40px); height: calc(100% - 192px); object-fit: cover; background: #eee; z-index: 1; }
+        .stage-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+        .loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 10; display: none; justify-content: center; align-items: center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #333; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .studio-controls { width: 100%; max-width: 350px; }
+        textarea { width: 100%; height: 80px; background: #333; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-family: var(--font-body); resize: none; }
+        .refresh-btn { background: #333; color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; margin-bottom: 15px; }
+        .refresh-btn svg { width: 20px; height: 20px; fill: #fff; }
+
+        .action-row { display: flex; gap: 10px; margin-top: 10px; }
+        .action-btn { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 5px; font-size: 14px; }
+        .btn-boost { background: linear-gradient(45deg, #FFD700, #FFA500); color: #000; }
+        .btn-normal { background: #333; color: #fff; }
+
+        .help-btn { width: 44px; height: 44px; background: #222; color: #999; border: 1px solid #444; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: var(--font-body); display: flex; justify-content: center; align-items: center; }
+        .help-tooltip { position: absolute; bottom: 65px; right: 0; width: 240px; background: #222; border: 1px solid var(--accent-gold); color: #fff; padding: 15px; border-radius: 8px; font-size: 13px; z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,0.6); display: none; text-align: left; }
+        .help-tooltip strong { color: var(--accent-gold); display: block; margin-bottom: 5px; font-size: 14px; }
+        .help-list { margin: 0; padding-left: 20px; color: #ccc; line-height: 1.6; }
+        .help-list li::marker { color: var(--accent-gold); }
+
+        /* Login & Toast */
+        .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: var(--surface-color); padding: 30px; border-radius: 12px; width: 85%; max-width: 320px; text-align: center; border: 1px solid #333; }
+        .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.9); color: #000; padding: 10px 20px; border-radius: 30px; font-weight: bold; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 5000; white-space: nowrap; }
+        
+        /* New Inputs for Email Auth */
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .login-input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 6px; font-size: 16px; outline: none; }
+        .login-input:focus { border-color: var(--primary-color); }
+        .auth-btn-primary { background: var(--primary-color); color: #000; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .auth-btn-secondary { background: transparent; color: #999; border: none; font-size: 12px; cursor: pointer; text-decoration: underline; margin-top: 15px; }
+        .code-input { width: 100%; padding: 12px; background: #333; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 10px; text-align: center; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+
+    <section id="discovery-view" class="view active">
+        <div class="discovery-header">
+            <div class="toggle-container">
+                <button class="toggle-btn active" id="btn-global" onclick="switchDiscoveryMode('global')">Global</button>
+                <button class="toggle-btn" id="btn-mine" onclick="switchDiscoveryMode('mine')">Mine</button>
+            </div>
+        </div>
+        <div class="card-container" id="card-stack"></div>
+    </section>
+
+    <section id="ranking-view" class="view">
+        <div class="ranking-header">
+            <h2 class="font-head" style="margin: 0 0 15px 0;">HALL OF HAHA</h2>
+            <div class="filter-group"><button class="filter-btn active" onclick="switchRank('score')">🔥 Highest</button><button class="filter-btn" onclick="switchRank('new')">🕒 Newest</button></div>
+        </div>
+        <div class="rank-list" id="rank-list"></div>
+    </section>
+
+    <section id="mine-view" class="view" style="overflow-y: auto;">
+        <div style="padding: 20px;">
+            <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                <div id="profile-pic" style="width: 60px; height: 60px; background: #333; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; margin-right: 15px; overflow:hidden;">👤</div>
+                <div><h2 id="profile-name" class="font-head" style="margin: 0;">Guest</h2><span id="profile-stats" class="text-sm text-secondary">Login to see stats</span></div>
+                <button id="auth-btn" style="margin-left: auto; background: transparent; border: 1px solid #666; color: #fff; padding: 5px 15px; border-radius: 20px;" onclick="toggleAuth()">Login</button>
+            </div>
+            <h3 class="font-head">MY ARCHIVE</h3>
+            <div id="my-works-grid" class="mine-grid"></div>
+        </div>
+    </section>
+
+    <nav class="nav-bar">
+        <div class="nav-item active" onclick="switchTab('discovery-view', this)"><span>👀</span><span class="nav-label">Discover</span></div>
+        <div class="nav-item" onclick="switchTab('ranking-view', this)"><span>🏆</span><span class="nav-label">Rank</span></div>
+        <div class="nav-item" onclick="openStudio()"><span style="font-size: 32px; font-weight: bold;">➕</span></div>
+        <div class="nav-item" onclick="switchTab('mine-view', this)"><span>👤</span><span class="nav-label">Me</span></div>
+    </nav>
+
+    <div id="studio-modal" class="modal">
+        <div class="modal-header"><button class="btn-icon" onclick="closeStudio()">✕</button><span class="font-head">STUDIO</span><div style="width:24px;"></div></div>
+        <div class="studio-body">
+            <button class="refresh-btn" id="shuffle-btn" onclick="fetchGiphyTrending(true)"><svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg></button>
+            <div class="stage-wrapper" id="stage"><div class="loading-overlay" id="loading-overlay"><div class="spinner"></div></div><img id="stage-img" class="stage-bg-img" crossorigin="anonymous"><canvas id="stage-canvas" class="stage-canvas" width="350" height="480"></canvas></div>
+            <div class="studio-controls">
+                <textarea id="meme-input" placeholder="Enter your funny caption..." oninput="drawMask()"></textarea>
+                <div class="action-row">
+                    <button class="action-btn btn-normal" onclick="publishMeme(false)">Post Free</button>
+                    <div style="flex: 1; display: flex; gap: 8px; position: relative;">
+                        <button class="action-btn btn-boost" style="flex:1" onclick="initiateBoost()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> Boost
+                        </button>
+                        <button class="help-btn" onclick="toggleBoostHelp()">?</button>
+                        <div id="boost-help" class="help-tooltip"><strong>🚀 Why Boost?</strong><ul class="help-list"><li><b>Forced Exposure:</b> Appears every 5 swipes for everyone.</li><li><b>Gold Border:</b> Stand out with premium styling.</li><li><b>Sponsored Tag:</b> Official partner status.</li></ul></div>
+                    </div>
+                </div>
+                <div class="text-center text-secondary text-sm" style="margin-top:10px; color:#666; text-align:center;">Free Quota: <span id="quota-display">10</span>/10</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-modal" class="login-overlay" style="display: none;">
+        <div class="login-box">
+            <h2 class="font-head" style="margin-bottom: 20px;">WELCOME</h2>
+            
+            <div id="login-step-email">
+                <p style="color:#888; font-size: 14px; margin-bottom: 20px;">Enter email to login/register</p>
+                <input type="email" id="email-input" class="login-input" placeholder="name@example.com">
+                <button class="auth-btn-primary" onclick="sendMagicLink()">Get Login Code</button>
+            </div>
+
+            <div id="login-step-otp" style="display: none;">
+                <p style="color:#888; font-size: 14px; margin-bottom: 20px;">Check your email for the code</p>
+                <input type="text" id="otp-input" class="login-input" placeholder="123456" maxlength="6" style="text-align: center; letter-spacing: 4px;">
+                <button class="auth-btn-primary" onclick="verifyOtp()">Verify & Login</button>
+            </div>
+
+            <button class="auth-btn-secondary" onclick="document.getElementById('login-modal').style.display='none'">Continue as Guest</button>
+        </div>
+    </div>
+
+    <div id="boost-modal" class="login-overlay" style="display: none;">
+        <div class="login-box">
+            <h2 class="font-head" style="color: var(--accent-gold);">🚀 BOOST POST</h2>
+            <p style="color:#bbb; font-size: 13px; margin-bottom: 20px;">Get seen by everyone!<br>1. <a href="#" style="color: #fff; font-weight: bold; text-decoration: underline;">Pay $1 here</a><br>2. Enter code from receipt:</p>
+            <input type="text" id="boost-code" class="code-input" placeholder="BOOST-XXXX">
+            <button class="action-btn btn-boost" style="width:100%; margin-top:15px;" onclick="confirmBoost()">CONFIRM & POST</button>
+            <button class="btn-icon" style="margin-top: 15px; font-size: 12px; width: 100%;" onclick="document.getElementById('boost-modal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Action Successful</div>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const SUPABASE_URL = 'https://cezfhqupnllamtefrius.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlemZocXVwbmxsYW10ZWZyaXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5ODEwMzIsImV4cCI6MjA4MTU1NzAzMn0.C37o1pas8Uq5tp6xtNUsZhPFZZrst-9tVc217Gdy9Z8';
+        
+        const SPONSORED_KEY = 'haha_sponsored_v2';
+        const GIPHY_API_KEY = 'MNxTcmXFCMfbOhM6yD1vVDrw4fDHgSbn';
+        const SHARE_DOMAIN = 'https://haha.vercel.app'; 
+        const BOOST_SECRET = 'BOOST-123'; 
+        const AD_FREQUENCY = 5; 
+
+        // Init Supabase Client
+        let supabaseClient = null;
+        try {
+            if (typeof supabase !== 'undefined') {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            } else {
+                console.warn("Supabase SDK not loaded.");
+            }
+        } catch(e) {
+            console.warn("Supabase not configured yet. Using local mode.");
+        }
+
+        const MEME_KEYWORDS = ['meme', 'funny meme', 'reaction', 'judging you', 'confused', 'excited', 'spongebob', 'the office', 'cat meme', 'dog meme', 'side eye', 'coding', 'fail', 'success', 'party', 'crying', 'laughing'];
+
+        let appState = {
+            user: null, 
+            db: [], sponsoredDb: [], 
+            currentImgUrl: '',
+            currentRankFilter: 'score',
+            discoveryMode: 'global', // 'global' or 'mine'
+            discoveryIndex: 0,
+            swipeCounter: 0,
+            quota: { date: new Date().toDateString(), count: 10 },
+            giphyCache: []
+        };
+
+        // --- 2. INITIALIZATION ---
+        async function init() {
+            // Check Login Session
+            if(supabaseClient) {
+                try {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session) {
+                        appState.user = { 
+                            email: session.user.email, 
+                            name: session.user.email.split('@')[0], 
+                            id: session.user.id 
+                        };
+                    }
+                } catch(e) { console.log("Session check failed", e); }
+            }
+            updateUserUI();
+
+            // --- FETCH DATA FROM SUPABASE ---
+            if(supabaseClient) {
+                const { data, error } = await supabaseClient
+                    .from('posts')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(100); 
+
+                if (!error && data) {
+                    appState.db = data.map(post => ({
+                        id: post.id,
+                        user: post.user_name,
+                        text: post.text_content,
+                        image: post.image_url,
+                        likes: post.likes,
+                        pass: post.pass_count,
+                        timestamp: new Date(post.created_at).getTime(),
+                        isAd: post.is_ad
+                    }));
+                }
+            }
+            
+            // Fallback for empty database
+            if (appState.db.length === 0) {
+                 appState.db = [{ id: 1, user: 'Admin', text: 'Welcome to\nGlobal HAHA', image: 'https://media.giphy.com/media/nXxOjZrbnbRxS/giphy.gif', likes: 100, pass: 0, timestamp: Date.now(), isAd: false }];
+            }
+
+            // Ads handling (can remain local for now)
+            const savedAds = localStorage.getItem(SPONSORED_KEY);
+            if (savedAds) appState.sponsoredDb = JSON.parse(savedAds);
+            else { appState.sponsoredDb = [{ id: 999, user: 'HAHA Official', text: 'This is a\nSponsored Meme', image: 'https://media.giphy.com/media/l0Ex6kAKAoFRsFh6M/giphy.gif', likes: 999, pass: 0, timestamp: Date.now(), isAd: true }]; saveAds(); }
+
+            // Shuffle global view
+            if(appState.discoveryMode === 'global') {
+                appState.db.sort(() => 0.5 - Math.random());
+            }
+
+            renderDiscoveryInit();
+            renderRanking();
+            fetchGiphyTrending(false); 
+        }
+
+        function saveAds() { localStorage.setItem(SPONSORED_KEY, JSON.stringify(appState.sponsoredDb)); }
+
+        // --- 3. SUPABASE AUTH LOGIC ---
+        function toggleAuth() {
+            if (appState.user) {
+                if(confirm('Logout?')) {
+                    if(supabaseClient) supabaseClient.auth.signOut();
+                    appState.user = null;
+                    appState.discoveryMode = 'global'; 
+                    switchDiscoveryMode('global');
+                    updateUserUI();
+                    renderProfile();
+                }
+            } else {
+                document.getElementById('login-modal').style.display = 'flex';
+                document.getElementById('login-step-email').style.display = 'block';
+                document.getElementById('login-step-otp').style.display = 'none';
+            }
+        }
+
+        async function sendMagicLink() {
+            const email = document.getElementById('email-input').value.trim();
+            if(!email.includes('@')) { showToast("Invalid Email"); return; }
+            if(!supabaseClient) { showToast("Supabase not configured"); return; }
+
+            const { error } = await supabaseClient.auth.signInWithOtp({ email: email });
+            if (error) { showToast("Error: " + error.message); } 
+            else {
+                showToast("Code sent to " + email);
+                document.getElementById('login-step-email').style.display = 'none';
+                document.getElementById('login-step-otp').style.display = 'block';
+            }
+        }
+
+        async function verifyOtp() {
+            const email = document.getElementById('email-input').value.trim();
+            const token = document.getElementById('otp-input').value.trim();
+            if(!supabaseClient) return;
+
+            const { data, error } = await supabaseClient.auth.verifyOtp({ email, token, type: 'email'});
+            if (error) { showToast("Invalid Code"); } 
+            else {
+                appState.user = { email: data.user.email, name: data.user.email.split('@')[0], id: data.user.id };
+                document.getElementById('login-modal').style.display = 'none';
+                updateUserUI();
+                renderProfile();
+                showToast("Welcome " + appState.user.name);
+            }
+        }
+
+        // --- 4. GIPHY ---
+        async function fetchGiphyTrending(updateStudio = false) {
+            if (updateStudio) { 
+                document.getElementById('loading-overlay').style.display = 'flex';
+                const btn = document.getElementById('shuffle-btn');
+                btn.style.transition = 'transform 1s';
+                btn.style.transform = `rotate(${Math.random() * 360 + 360}deg)`;
+            }
+            try {
+                const term = MEME_KEYWORDS[Math.floor(Math.random() * MEME_KEYWORDS.length)];
+                const offset = Math.floor(Math.random() * 50); 
+                const response = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(term)}&limit=10&rating=g&offset=${offset}`);
+                const data = await response.json();
+                if (data.data && data.data.length > 0) {
+                    appState.giphyCache = data.data.map(gif => gif.images.downsized_medium.url);
+                    if (updateStudio) randomizeTemplate();
+                }
+            } catch (e) { document.getElementById('loading-overlay').style.display = 'none'; } 
+        }
+
+        // --- 5. CORE RENDERERS ---
+        function switchDiscoveryMode(mode) {
+            if (mode === 'mine' && !appState.user) {
+                showToast("Login to see your memes!");
+                toggleAuth();
+                return;
+            }
+            appState.discoveryMode = mode;
+            
+            document.getElementById('btn-global').classList.toggle('active', mode === 'global');
+            document.getElementById('btn-mine').classList.toggle('active', mode === 'mine');
+            
+            // Reload init to fetch or filter correct data
+            init();
+        }
+
+        function renderDiscoveryInit() {
+            const container = document.getElementById('card-stack'); container.innerHTML = '';
+            appState.discoveryIndex = 0; appState.swipeCounter = 0;
+            
+            if (appState.discoveryMode === 'mine' && (!appState.user || !hasUserPosts())) {
+                const empty = document.createElement('div');
+                empty.className = 'tinder-card empty-card';
+                empty.innerHTML = `<h2 class="font-head">NO MEMES YET</h2><p style="font-size:14px;">You haven't posted anything.</p><button class="action-btn btn-normal" onclick="openStudio()">Create Now</button>`;
+                container.appendChild(empty);
+                return;
+            }
+
+            addCardToStack(0); 
+            const list = getActiveList();
+            if (list.length > 1) addCardToStack(1); 
+            
+            updateSwipeHandler();
+        }
+
+        function getActiveList() {
+            if (appState.discoveryMode === 'mine') {
+                if (!appState.user) return [];
+                return appState.db.filter(item => item.user === appState.user.name);
+            }
+            return appState.db; 
+        }
+
+        function hasUserPosts() {
+            return appState.db.some(item => item.user === appState.user.name);
+        }
+
+        function addCardToStack(offsetIndex) {
+            const container = document.getElementById('card-stack');
+            const effectiveIndex = appState.swipeCounter + offsetIndex;
+            let item;
+            
+            const activeList = getActiveList();
+            if (activeList.length === 0) return;
+
+            if (appState.discoveryMode === 'global' && effectiveIndex > 0 && effectiveIndex % AD_FREQUENCY === 0 && appState.sponsoredDb.length > 0) {
+                const adIndex = Math.floor(Math.random() * appState.sponsoredDb.length);
+                item = appState.sponsoredDb[adIndex];
+            } else {
+                const dataIndex = (appState.discoveryIndex + offsetIndex) % activeList.length;
+                item = activeList[dataIndex];
+            }
+
+            if (!item) return;
+            const card = createCardDOM(item);
+            if (offsetIndex === 0) container.appendChild(card);
+            else container.insertBefore(card, container.firstChild);
+        }
+
+        function createCardDOM(item) {
+            const el = document.createElement('div');
+            el.className = 'tinder-card';
+            el.dataset.id = item.id;
+            let sponsoredTag = item.isAd ? `<div class="sponsored-tag">📢 SPONSORED</div>` : '';
+            if (item.isAd) el.classList.add('sponsored');
+            
+            el.innerHTML = `
+                ${sponsoredTag}
+                <div class="badge badge-haha">HAHA</div>
+                <div class="badge badge-pass">PASS</div>
+                <div class="meme-layout">
+                    <div class="meme-top">${item.text.replace(/\n/g, '<br>')}</div>
+                    <div class="meme-middle"><img src="${item.image}" class="meme-img"></div>
+                    <div class="meme-footer">
+                        <div>
+                            <span class="font-head" style="font-size:14px;">@${item.user}</span>
+                            <div class="stats-container">
+                                <div class="stat-item"><div class="stamp-icon stamp-haha">H</div>${item.likes}</div>
+                                <div class="stat-item"><div class="stamp-icon stamp-pass">P</div>${item.pass}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center;">
+                            <span class="meme-watermark">HAHA</span>
+                            <button class="share-btn" onclick="event.stopPropagation(); shareLink('${item.id}')">
+                                <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return el;
+        }
+
+        // --- 6. ACTIONS ---
+        function toggleBoostHelp() {
+            const t = document.getElementById('boost-help'); t.style.display = t.style.display==='none'?'block':'none';
+        }
+        function initiateBoost() {
+            if (!appState.user) { document.getElementById('login-modal').style.display = 'flex'; return; }
+            if (!document.getElementById('meme-input').value.trim()) { showToast('Add text first!'); return; }
+            document.getElementById('boost-modal').style.display = 'flex';
+        }
+        function confirmBoost() {
+            if (document.getElementById('boost-code').value.trim() === BOOST_SECRET) {
+                publishMeme(true); 
+                document.getElementById('boost-modal').style.display = 'none';
+                showToast("🚀 BOOST SUCCESSFUL!");
+            } else { showToast("Invalid Code"); }
+        }
+        
+        async function publishMeme(isBoosted) {
+            if (!appState.user && !isBoosted) { document.getElementById('login-modal').style.display = 'flex'; return; }
+            const text = document.getElementById('meme-input').value;
+            if (!text.trim()) { showToast('Add text!'); return; }
+            if (!isBoosted && appState.quota.count <= 0) { showToast('Quota limit reached!'); return; }
+            
+            // Optimistic Update
+            const tempId = Date.now();
+            const newMemeLocal = { id: tempId, user: appState.user.name, text: text, image: appState.currentImgUrl, likes: 0, pass: 0, timestamp: Date.now(), isAd: isBoosted };
+            appState.db.unshift(newMemeLocal);
+            
+            // --- INSERT INTO SUPABASE ---
+            if (supabaseClient) {
+                const { error } = await supabaseClient
+                    .from('posts')
+                    .insert({
+                        user_name: appState.user.name,
+                        text_content: text,
+                        image_url: appState.currentImgUrl,
+                        is_ad: isBoosted,
+                        likes: 0,
+                        pass_count: 0
+                    });
+                
+                if (error) {
+                    showToast("Upload failed: " + error.message);
+                    console.error(error);
+                    return; 
+                }
+            }
+
+            if (!isBoosted) appState.quota.count--;
+            
+            closeStudio(); 
+            // Refresh logic
+            switchDiscoveryMode(appState.discoveryMode); 
+            renderProfile(); 
+            shareLink(tempId);
+            showToast("Posted Successfully!");
+        }
+
+        // --- 7. UTILS ---
+        function renderProfile() {
+            const g = document.getElementById('my-works-grid'); g.innerHTML = '';
+            if (!appState.user) { g.innerHTML = '<div style="grid-column:span 2;text-align:center;padding:50px;color:#666;">Login first</div>'; return; }
+            const p = appState.db.filter(i => i.user === appState.user.name);
+            const ads = appState.sponsoredDb.filter(i => i.user === appState.user.name);
+            const all = [...ads, ...p].sort((a,b) => b.timestamp - a.timestamp);
+            if (!all.length) { g.innerHTML = '<div style="grid-column:span 2;text-align:center;padding:50px;color:#666;">No memes yet.</div>'; return; }
+            
+            all.forEach(i => { 
+                const card = document.createElement('div'); card.className = 'mini-card-wrapper';
+                const adTag = i.isAd ? '<span style="background:gold;color:black;font-size:8px;padding:1px 3px;border-radius:2px;margin-right:4px;">PRO</span>' : '';
+                card.innerHTML = `
+                    <div class="meme-layout">
+                        <div class="meme-top">${i.text.replace(/\n/g, '<br>')}</div>
+                        <div class="meme-middle"><img src="${i.image}" class="meme-img"></div>
+                        <div class="meme-footer">
+                            <div><span style="font-size:8px;color:#555;display:block;margin-bottom:2px;">${adTag}@${i.user}</span><div class="stats-container" style="gap:4px;"><div class="stat-item" style="font-size:8px;"><div class="stamp-icon stamp-haha" style="width:12px;height:12px;font-size:4px;border-width:1px;">H</div>${i.likes}</div><div class="stat-item" style="font-size:8px;"><div class="stamp-icon stamp-pass" style="width:12px;height:12px;font-size:4px;border-width:1px;">P</div>${i.pass}</div></div></div>
+                            <span class="meme-watermark">HAHA</span>
+                        </div>
+                    </div>`;
+                g.appendChild(card); 
+            });
+        }
+        
+        function shareLink(id) { const url = `${SHARE_DOMAIN}/meme/${id}`; if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => showToast("Link Copied! 🔗")).catch(() => {}); else showToast("Link Copied! 🔗"); }
+        function openStudio() { document.getElementById('studio-modal').classList.add('open'); document.getElementById('quota-display').innerText = appState.quota.count; if(appState.giphyCache.length === 0) fetchGiphyTrending(true); else randomizeTemplate(); }
+        function closeStudio() { document.getElementById('studio-modal').classList.remove('open'); }
+        function randomizeTemplate() { if(appState.giphyCache.length === 0) return; const loader = document.getElementById('loading-overlay'); loader.style.display = 'flex'; appState.currentImgUrl = appState.giphyCache[Math.floor(Math.random() * appState.giphyCache.length)]; const img = document.getElementById('stage-img'); img.onload = () => { loader.style.display = 'none'; drawMask(); }; img.src = appState.currentImgUrl; document.getElementById('meme-input').value = ''; drawMask(); }
+        
+        function drawMask() {
+            const canvas = document.getElementById('stage-canvas'); const ctx = canvas.getContext('2d');
+            const text = document.getElementById('meme-input').value || '';
+            const w = canvas.width, h = canvas.height;
+            const topH = 120; const bottomH = 72; 
+            ctx.clearRect(0,0,w,h); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); 
+            ctx.globalCompositeOperation = 'destination-out'; ctx.fillRect(20, topH, w - 40, h - topH - bottomH); 
+            ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.strokeRect(20, topH, w - 40, h - topH - bottomH);
+            ctx.fillStyle = '#000000'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            let fontSize = text.length > 20 ? 24 : (text.length > 10 ? 32 : 40);
+            ctx.font = `bold ${fontSize}px "Inter", "Arial", sans-serif`; wrapText(ctx, text, w / 2, topH / 2, w - 40, fontSize * 1.2);
+            ctx.fillStyle = '#fafafa'; ctx.fillRect(0, h - bottomH, w, bottomH); ctx.fillStyle = '#ccc'; ctx.fillRect(0, h - bottomH, w, 1);
+            ctx.fillStyle = '#999'; ctx.font = 'bold 20px Anton'; ctx.textAlign = 'right'; ctx.fillText('HAHA', w - 20, h - 25);
+        }
+
+        function cycleNextCard() { appState.discoveryIndex++; appState.swipeCounter++; addCardToStack(1); updateSwipeHandler(); }
+        function updateSwipeHandler() { const c = document.getElementById('card-stack'); if (c.lastElementChild && !c.lastElementChild.classList.contains('empty-card')) initSwipe(c.lastElementChild); }
+        function initSwipe(card) {
+            let startX = 0, currentX = 0, isDragging = false;
+            const bHaha = card.querySelector('.badge-haha'), bPass = card.querySelector('.badge-pass');
+            const onStart = (e) => { startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX; isDragging = true; card.style.transition = 'none'; };
+            const onMove = (e) => {
+                if(!isDragging) return;
+                currentX = (e.type.includes('mouse') ? e.clientX : e.touches[0].clientX) - startX;
+                card.style.transform = `translateX(${currentX}px) rotate(${currentX*0.05}deg)`;
+                if(currentX > 0) { bHaha.style.opacity = Math.min(currentX/100,1); bPass.style.opacity = 0; } else { bPass.style.opacity = Math.min(Math.abs(currentX)/100,1); bHaha.style.opacity = 0; }
+            };
+            const onEnd = () => {
+                isDragging = false; card.style.transition = 'transform 0.3s ease';
+                if(Math.abs(currentX) > 100) {
+                    const dir = currentX > 0 ? 1 : -1;
+                    card.style.transform = `translateX(${dir*1000}px) rotate(${dir*30}deg)`;
+                    handleInteraction(card.dataset.id, dir > 0 ? 'like' : 'pass', card.classList.contains('sponsored'));
+                    setTimeout(() => { card.remove(); cycleNextCard(); }, 300);
+                } else { card.style.transform = ''; bHaha.style.opacity=0; bPass.style.opacity=0; }
+            };
+            card.addEventListener('touchstart', onStart); card.addEventListener('touchmove', onMove); card.addEventListener('touchend', onEnd);
+            card.addEventListener('mousedown', onStart); window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', () => {if(isDragging) onEnd()});
+        }
+        function handleInteraction(id, type, isAd) { const targetDb = isAd ? appState.sponsoredDb : appState.db; const item = targetDb.find(i => i.id == id); if(item) { type === 'like' ? item.likes++ : item.pass++; 
+            if(!isAd && supabaseClient) { supabaseClient.rpc('increment_stats', { row_id: id, action_type: type }).then(({error}) => { if(error) console.log(error); }); }
+            if(isAd) saveAds(); 
+        }}
+        
+        function updateUserUI() { 
+            const n = document.getElementById('profile-name'), s = document.getElementById('profile-stats'), b = document.getElementById('auth-btn'), pic = document.getElementById('profile-pic');
+            if (appState.user) { 
+                n.innerText = appState.user.name; s.innerText = `Posts: ${appState.db.filter(i => i.user === appState.user.name).length}`; b.innerText = 'Logout'; b.style.color = '#F44336'; b.style.borderColor = '#F44336';
+                pic.innerHTML = `<img src="https://ui-avatars.com/api/?name=${appState.user.name}&background=random" style="width:100%;height:100%;object-fit:cover;">`;
+            } else { n.innerText = 'Guest'; s.innerText = 'Login to see stats'; b.innerText = 'Login'; b.style.color = '#fff'; b.style.borderColor = '#666'; pic.innerHTML = '👤'; } 
+        }
+        function switchTab(viewId, navEl) { document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active')); document.getElementById(viewId).classList.add('active'); if(navEl) navEl.classList.add('active'); if(viewId === 'ranking-view') renderRanking(); if(viewId === 'mine-view') renderProfile(); }
+        function switchRank(filter) { appState.currentRankFilter = filter; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); renderRanking(); }
+        function renderRanking() {
+            const list = document.getElementById('rank-list'); list.innerHTML = '';
+            let sorted = [...appState.db];
+            if (appState.currentRankFilter === 'score') sorted.sort((a,b) => (b.likes - b.pass) - (a.likes - a.pass));
+            else if (appState.currentRankFilter === 'new') sorted.sort((a,b) => b.timestamp - a.timestamp);
+            sorted.forEach((item, idx) => {
+                const div = document.createElement('div'); div.className = 'rank-item';
+                div.innerHTML = `<div class="rank-num">${idx + 1}</div><img src="${item.image}" class="rank-thumb"><div class="rank-info"><div style="font-weight:bold; color:#fff;">${item.text.substring(0, 10)}...</div></div><div class="rank-score">${item.likes}</div>`;
+                list.appendChild(div);
+            });
+        }
+        function wrapText(ctx, t, x, y, mw, lh) { const w = t.split(''); let l = '', ls = []; for(let n=0; n<w.length; n++) { if(w[n]==='\n'){ls.push(l);l='';continue;} let tl = l+w[n]; if(ctx.measureText(tl).width > mw && n>0){ls.push(l);l=w[n];}else{l=tl;} } ls.push(l); let sy = y - ((ls.length-1)*lh)/2; for(let k=0; k<ls.length; k++) ctx.fillText(ls[k], x, sy+(k*lh)); }
+        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.opacity = 1; t.style.bottom = '100px'; setTimeout(() => { t.style.opacity = 0; t.style.bottom = '80px'; }, 2000); }
+        
+        window.onload = init;
+    </script>
+</body>
+</html>
